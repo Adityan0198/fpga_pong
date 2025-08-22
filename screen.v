@@ -3,6 +3,8 @@ module top #(
     parameter DT = 17'b10000000000000000
 ) (
     input clk,
+    input btn1,
+    input btn2,
     output o_sclk,
     output o_sdin,
     output o_cs,
@@ -101,10 +103,10 @@ always @(posedge clk) begin
                 dc <= 1;
                 pixelCounter <= pixelCounter + 1;
 
-                if (pixelCounter == (8'b10000000*yPos[11:9]) + {3'b0, xPos[12:6]})
-                    dataToSend <= (8'b1 << yPos[8:6]);
+                if (pixelCounter == (yPos[11:9]<<7) + {3'b0, xPos[12:6]})
+                    dataToSend <= (8'b1 << yPos[8:6]) | (paddlePixel<< 7);
                 else
-                    dataToSend <= 0;
+                    dataToSend <= (paddlePixel << 7);
             
             end else begin
                 dc <= 0;
@@ -133,16 +135,21 @@ always @(posedge clk) begin
     endcase
 end
 
-//Bouncing Ball Sim
-//fixed precision arithemetic
+//Pong
+//uses fixed precision arithemetic
 
 reg [12:0] xPos = 13'b1000000000000;
 reg [11:0] yPos = 12'b100000000000; // Big Pixel-[100] Pixel pos-[000] precision-[000000]
 
 reg [4:0] xVel = 5'b00101;
 reg [4:0] yVel = 5'b00010;
+
 reg xSign = 1;
 reg ySign = 0;
+
+localparam PADDLE_LENGTH = 16;
+reg [6:0] paddlePos = 7'd64;
+wire paddlePixel = (pixelCounter - (128*7 + paddlePos) <= PADDLE_LENGTH);
 
 reg [20:0] sim_counter = 0;
 
@@ -168,6 +175,7 @@ always @(posedge clk) begin
             ySign <= 0;
         else if (yPos[11:6] == 6'b0)
             ySign <= 1;
+
     end
 end
 
