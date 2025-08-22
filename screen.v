@@ -149,9 +149,13 @@ reg ySign = 0;
 
 localparam PADDLE_LENGTH = 16;
 reg [6:0] paddlePos = 7'd64;
-wire paddlePixel = (pixelCounter - (128*7 + paddlePos) <= PADDLE_LENGTH);
+wire paddlePixel = (pixelCounter - (128*7 + paddlePos) < PADDLE_LENGTH);
 
 reg [20:0] sim_counter = 0;
+
+reg [2:0] btn1_counter = 0;
+reg [2:0] btn2_counter = 0;
+localparam BTN_SENSTIVITY = 3'b11;
 
 always @(posedge clk) begin
     sim_counter <= sim_counter + 1;
@@ -175,6 +179,17 @@ always @(posedge clk) begin
             ySign <= 0;
         else if (yPos[11:6] == 6'b0)
             ySign <= 1;
+        
+        //Active low
+        btn1_counter <= btn1_counter + ~btn1;
+        btn2_counter <= btn2_counter + ~btn2;
+
+        if (~btn1 && (btn1_counter == BTN_SENSTIVITY) && (paddlePos > 0)) begin
+            paddlePos <= paddlePos - 1;
+        end
+        if (~btn2 && (btn2_counter == BTN_SENSTIVITY) && (paddlePos < 127 - PADDLE_LENGTH)) begin
+            paddlePos <= paddlePos + 1;
+        end
 
     end
 end
