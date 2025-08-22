@@ -10,13 +10,11 @@ module top #(
 );
 
 localparam STATE_INIT_POWER = 0;
-localparam STATE_LOAD_INIT_CMD = 1;
+localparam STATE_LOAD_DATA = 1;
 localparam STATE_SEND = 2;
-localparam STATE_CHECK_FINISHED_INIT = 3;
-localparam STATE_LOAD_DATA = 4;
 
 reg [31:0] counter = 0;
-reg [2:0] state = 0;
+reg [1:0] state = 0;
 
 reg dc = 1;
 reg sclk = 1;
@@ -91,18 +89,25 @@ always @(posedge clk) begin
             else if (counter < STARTUP_WAIT * 3)
                 reset <= 1;
             else begin
-                state <= STATE_LOAD_INIT_CMD;
+                state <= STATE_LOAD_DATA;
                 counter <= 0;
             end
         end
     
-        STATE_LOAD_INIT_CMD: begin
-            dc <= 0;
+        STATE_LOAD_DATA: begin
             cs <= 0;
             state <= STATE_SEND;
             bitNumber <= 3'b111;
-            dataToSend <= startupCommands[(commandIndex-1)-:8'd8];
-            commandIndex <= commandIndex - 8'd8;
+            
+            if (commandIndex == 0) begin
+                dc <= 1;
+                dataToSend <= screenBuffer[pixelCounter];
+                pixelCounter <= pixelCounter + 1;
+            end else begin
+                dc <= 0;
+                dataToSend <= startupCommands[(commandIndex-1)-:8'd8];
+                commandIndex <= commandIndex - 8'd8;
+            end
         end
 
         STATE_SEND: begin
@@ -116,28 +121,10 @@ always @(posedge clk) begin
                 sclk <= 1;
                 counter <= 0;
                 if (bitNumber == 0)
-                    state <= STATE_CHECK_FINISHED_INIT;
+                    state <= STATE_LOAD_DATA;
                 else
                     bitNumber <= bitNumber - 1;
             end
-        end
-
-        STATE_CHECK_FINISHED_INIT: begin
-            cs <= 1;
-            if (commandIndex == 0) begin
-                state <= STATE_LOAD_DATA;
-            end else begin
-                state <= STATE_LOAD_INIT_CMD;
-            end
-        end
-
-        STATE_LOAD_DATA: begin
-            dc <= 1;
-            cs <= 0;
-            state <= STATE_SEND;
-            pixelCounter <= pixelCounter + 1;
-            bitNumber <= 3'b111;
-            dataToSend <= screenBuffer[pixelCounter];
         end
 
     endcase
