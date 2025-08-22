@@ -1,5 +1,6 @@
 module top #(
-    parameter STARTUP_WAIT = 32'd10000000
+    parameter STARTUP_WAIT = 32'd10000000,
+    parameter DT = 17'b10000000000000000
 ) (
     input clk,
     output o_sclk,
@@ -13,7 +14,7 @@ localparam STATE_INIT_POWER = 0;
 localparam STATE_LOAD_DATA = 1;
 localparam STATE_SEND = 2;
 
-reg [31:0] counter = 0;
+reg [31:0] spi_counter = 0;
 reg [1:0] state = 0;
 
 reg dc = 1;
@@ -78,16 +79,16 @@ always @(posedge clk) begin
     case (state)
 
         STATE_INIT_POWER: begin
-            counter <= counter + 1;
-            if (counter < STARTUP_WAIT)
+            spi_counter <= spi_counter + 1;
+            if (spi_counter < STARTUP_WAIT)
                 reset <= 1;
-            else if (counter < STARTUP_WAIT * 2)
+            else if (spi_counter < STARTUP_WAIT * 2)
                 reset <= 0;
-            else if (counter < STARTUP_WAIT * 3)
+            else if (spi_counter < STARTUP_WAIT * 3)
                 reset <= 1;
             else begin
                 state <= STATE_LOAD_DATA;
-                counter <= 0;
+                spi_counter <= 0;
             end
         end
     
@@ -100,8 +101,8 @@ always @(posedge clk) begin
                 dc <= 1;
                 pixelCounter <= pixelCounter + 1;
 
-                if (pixelCounter == (8'b10000000*yPos[9:7]) + {3'b0, xPos[10:4]})
-                    dataToSend <= (8'b1 << yPos[6:4]);
+                if (pixelCounter == (8'b10000000*yPos[11:9]) + {3'b0, xPos[12:6]})
+                    dataToSend <= (8'b1 << yPos[8:6]);
                 else
                     dataToSend <= 0;
             
@@ -113,15 +114,15 @@ always @(posedge clk) begin
         end
 
         STATE_SEND: begin
-            if (counter == 0) begin 
+            if (spi_counter == 0) begin 
                 //Set the line to value
                 sdin <= dataToSend[bitNumber];
                 sclk <= 0;
-                counter <= 1;
+                spi_counter <= 1;
             end else begin 
                 //Prepare for set, Data read by slave here
                 sclk <= 1;
-                counter <= 0;
+                spi_counter <= 0;
                 if (bitNumber == 0)
                     state <= STATE_LOAD_DATA;
                 else
@@ -135,7 +136,21 @@ end
 //Bouncing Ball Sim
 //fixed precision arithemetic
 
-reg [10:0] xPos = 11'b10000000000;
-reg [9:0] yPos = 10'b1000000000; // Big Pixel-[100] Pixel pos-[000] precision-[0000]
+reg [12:0] xPos = 13'b1000000000000;
+reg [11:0] yPos = 12'b100000000000; // Big Pixel-[100] Pixel pos-[000] precision-[000000]
+
+reg [5:0] xVel = 6'b00101;
+reg [5:0] yVel = 6'b00010;
+
+reg [20:0] sim_counter = 0;
+
+always @(posedge clk) begin
+    sim_counter <= sim_counter + 1;
+    if (sim_counter == DT) begin
+        sim_counter <= 0;
+        xPos <= xPos + xVel;
+        yPos <= yPos - yVel;
+    end
+end
 
 endmodule
