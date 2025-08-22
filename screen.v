@@ -74,8 +74,8 @@ localparam SETUP_INSTRUCTIONS = 23;
   };
   reg [7:0] commandIndex = SETUP_INSTRUCTIONS * 8;
 
-reg [7:0] screenBuffer [1023:0];
-initial $readmemh("image.hex", screenBuffer);
+// reg [7:0] screenBuffer [1023:0];
+// initial $readmemh("image.hex", screenBuffer);
 
 always @(posedge clk) begin
     case (state)
@@ -101,8 +101,13 @@ always @(posedge clk) begin
             
             if (commandIndex == 0) begin
                 dc <= 1;
-                dataToSend <= screenBuffer[pixelCounter];
                 pixelCounter <= pixelCounter + 1;
+
+                if (pixelCounter == (8'b10000000*yPos[9:7]) + {3'b0, xPos[10:4]})
+                    dataToSend <= (8'b1 << yPos[6:4]);
+                else
+                    dataToSend <= 0;
+            
             end else begin
                 dc <= 0;
                 dataToSend <= startupCommands[(commandIndex-1)-:8'd8];
@@ -129,5 +134,11 @@ always @(posedge clk) begin
 
     endcase
 end
+
+//Bouncing Ball Sim
+//fixed precision arithemetic
+
+reg [10:0] xPos = 11'b10000000000;
+reg [9:0] yPos = 10'b1000000000; // Big Pixel-[100] Pixel pos-[000] precision-[0000]
 
 endmodule
