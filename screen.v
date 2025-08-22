@@ -155,7 +155,7 @@ reg [20:0] sim_counter = 0;
 
 reg [2:0] btn1_counter = 0;
 reg [2:0] btn2_counter = 0;
-localparam BTN_SENSTIVITY = 3'b11;
+localparam BTN_SENSTIVITY = 3'b11; //Higher then value, slower the controls
 
 always @(posedge clk) begin
     sim_counter <= sim_counter + 1;
@@ -175,10 +175,15 @@ always @(posedge clk) begin
             xSign <= 0;
         else if (xPos[12:6] == 7'b0)
             xSign <= 1;
-        if (yPos[11:6] == 6'b111111)
-            ySign <= 0;
-        else if (yPos[11:6] == 6'b0)
+        if (yPos[11:6] == 6'b0)
             ySign <= 1;
+        else if (yPos[11:6] == 6'b111111) //bottom of screen
+            if (xPos[12:6] - paddlePos < PADDLE_LENGTH) begin
+                ySign <= 0;
+            end else begin //GAME OVER
+                xVel <= 0;
+                yVel <= 0; 
+            end
         
         //Active low
         btn1_counter <= btn1_counter + ~btn1;
