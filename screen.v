@@ -139,8 +139,10 @@ end
 reg [12:0] xPos = 13'b1000000000000;
 reg [11:0] yPos = 12'b100000000000; // Big Pixel-[100] Pixel pos-[000] precision-[000000]
 
-reg [5:0] xVel = 6'b00101;
-reg [5:0] yVel = 6'b00010;
+reg [4:0] xVel = 5'b00101;
+reg [4:0] yVel = 5'b00010;
+reg xSign = 1;
+reg ySign = 0;
 
 reg [20:0] sim_counter = 0;
 
@@ -148,8 +150,24 @@ always @(posedge clk) begin
     sim_counter <= sim_counter + 1;
     if (sim_counter == DT) begin
         sim_counter <= 0;
-        xPos <= xPos + xVel;
-        yPos <= yPos - yVel;
+
+        if (xSign)
+            xPos <= xPos + xVel;
+        else
+            xPos <= xPos - xVel;
+        if (ySign)
+            yPos <= yPos + yVel;
+        else
+            yPos <= yPos - yVel;
+
+        if (xPos[12:6] == 7'b1111111)
+            xSign <= 0;
+        else if (xPos[12:6] == 7'b0)
+            xSign <= 1;
+        if (yPos[11:6] == 6'b111111)
+            ySign <= 0;
+        else if (yPos[11:6] == 6'b0)
+            ySign <= 1;
     end
 end
 
