@@ -74,9 +74,6 @@ localparam SETUP_INSTRUCTIONS = 23;
   };
   reg [7:0] commandIndex = SETUP_INSTRUCTIONS * 8;
 
-// reg [7:0] screenBuffer [1023:0];
-// initial $readmemh("image.hex", screenBuffer);
-
 always @(posedge clk) begin
     case (state)
 
